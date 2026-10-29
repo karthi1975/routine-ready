@@ -52,7 +52,14 @@ $("#blindsBtn").onclick = () => { room.blinds = !room.blinds; trace(`✋ You ${r
 $("#lockBtn").onclick   = () => { room.locked = !room.locked; trace(`✋ You ${room.locked?"locked":"unlocked"} the door by hand.`, "dim"); renderRoom(); };
 $("#tempUp").onclick    = () => { room.temp++; renderRoom(); };
 $("#tempDown").onclick  = () => { room.temp--; renderRoom(); };
-$("#sun").oninput = e => { sun = +e.target.value; renderRoom(); };
+$("#sun").oninput = e => {
+  const wasDark = isDark();
+  sun = +e.target.value; renderRoom();
+  if (isDark() !== wasDark)
+    trace(isDark()
+      ? "🌙 It's night now. Changing the time doesn't run anything by itself — routines still only fire when their phrase is said."
+      : "🌞 It's daytime now. Routines with an “only after dark” condition will be skipped if you say their phrase.", "dim");
+};
 
 /* ---------- trace panel ---------- */
 let traceLines = [];

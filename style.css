@@ -47,8 +47,11 @@ footer{text-align:center;padding:0 20px 30px;font-size:12.5px}
 .room.night .device{color:#dfe4f2}
 .device{background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;font-size:13.5px}
 .room.night .device{background:rgba(20,24,40,.55)}
-.device .icon{font-size:30px;line-height:1;filter:grayscale(.65);transition:filter .3s, text-shadow .3s}
+.device .icon{font-size:30px;line-height:1;filter:grayscale(1) opacity(.35);transition:filter .3s, text-shadow .3s}
 .device.on .icon{filter:none;text-shadow:0 0 18px var(--glow)}
+.device{transition:border-color .3s}
+.device.on{border-color:var(--glow)}
+.device .state{font-weight:700}
 .device .state{font-size:12px;color:var(--mut)}
 .room.night .device .state{color:#aab3cf}
 
