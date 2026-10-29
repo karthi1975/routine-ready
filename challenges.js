@@ -61,7 +61,7 @@ const CHALLENGES = [
   id:"c3", n:3, title:"Add a condition", kind:"build",
   support:"Hints on demand. The sun slider matters now.",
   goal:"Maya's husband naps in the afternoon. Build a routine so “lights out” turns the lamp off — but ONLY after dark. In daylight the phrase should do nothing.",
-  testNote:"The check runs twice: once in daylight (lamp must stay on) and once at night (lamp must turn off). Drag the sun slider to test it yourself first.",
+  testNote:"Build the routine first (+ New routine, under “My routines”) — saying “lights out” before it exists does nothing, because the house has nothing to match. Then the check runs twice: once in daylight (lamp must stay on) and once at night (lamp must turn off). Drag the sun slider to test it yourself first.",
   hints:[
     "New routine, trigger phrase lights out, action Lamp → turn off.",
     "Step 2 is the new part: pick the condition “only after dark.” A condition doesn't change what the routine does — it changes when it's allowed to run.",

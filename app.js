@@ -262,6 +262,7 @@ function renderActive(){
   const el = $("#activePanel");
   if (!cur){ renderOnboarding(el); return; }
   const c = CH[cur], done = P.done[c.id];
+  const nx = CHALLENGES.find(x => x.n > c.n && x.kind !== "locked" && !P.done[x.id]);
   let h = `<h2>Challenge ${c.n} — ${esc(c.title)}</h2>
     <div class="goal">${esc(c.goal)}</div>
     <div class="support">Support: ${esc(c.support)}</div>`;
@@ -285,13 +286,15 @@ function renderActive(){
       if (lastResults.every(r => r.ok)) h += `<div class="doneBanner">✅ All criteria met — challenge complete!</div>`;
     }
     h += `<div class="panelRow">
-      <button class="btn" id="runCheck">Run the check</button>
+      ${done && nx ? `<button class="btn" id="nextCh">Continue to Challenge ${nx.n}: ${esc(nx.title)} →</button>` : ""}
+      <button class="btn${done && nx ? " sec" : ""}" id="runCheck">Run the check</button>
       ${c.hints && hintShown < (c.hints || []).length ? `<button class="btn sec" id="hintBtn">Hint (${hintShown}/${c.hints.length} used)</button>` : ""}
       ${c.kind === "fix" ? '<span class="mut">No hints here — the trace panel is your tool.</span>' : ""}
     </div>`;
   }
   el.innerHTML = h;
 
+  if ($("#nextCh")) $("#nextCh").onclick = () => openChallenge(nx.id);
   if ($("#wx-next")) $("#wx-next").onclick = () => { wxDo(c.steps[wxStep].do); wxStep++; wxDo(c.steps[wxStep].do, true); renderActive(); };
   if ($("#wx-done")) $("#wx-done").onclick = () => {
     wxDo(c.steps[wxStep].do);
