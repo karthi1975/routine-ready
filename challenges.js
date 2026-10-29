@@ -90,7 +90,7 @@ const CHALLENGES = [
 {
   id:"c4", n:4, title:"Fix the broken routine", kind:"fix",
   support:"Trace panel only — no hints. This is the diagnosis skill.",
-  goal:"Maya built this routine herself (it's in “My routines”). She says “good night” and… nothing happens. No error, no beep — a silent failure. Use the trace panel to find out why, fix the routine, and make bedtime work (lamp off, door locked).",
+  goal:"You're at Maya's place — her routine list is loaded (yours returns after this challenge). Maya built this routine herself. She says “good night” and… nothing happens. No error, no beep — a silent failure. Use the trace panel to find out why, fix her routine, and make bedtime work (lamp off, door locked).",
   testNote:"The check resets the room and says “good night.”",
   inject:{ id:"c4broken", name:"Maya's good night", phrase:"goodnight", cond:null,
            actions:[{device:"light",to:"off"},{device:"lock",to:"lock"}] },

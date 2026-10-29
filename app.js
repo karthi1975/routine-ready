@@ -241,10 +241,18 @@ function renderLadder(){
 function openChallenge(id){
   cur = id; wxStep = 0; lastResults = null; hintShown = P.hints[id] || 0;
   const c = CH[id];
-  if (c.inject && !routines.some(r => r.id === c.inject.id) && !P.done[id]){
-    routines.push(JSON.parse(JSON.stringify(c.inject)));
+  /* The fix-it challenge happens at Maya's place: her routine list replaces
+     yours while it's active, so your own routines can't mask her bug. */
+  if (P.stash && !c.inject){
+    routines = P.stash; P.stash = null;
     save(); renderRoutines();
-    trace(`📦 Maya's routine has been added to “My routines”.`, "dim");
+    trace("🏠 Back home — your routines are restored.", "dim");
+  }
+  if (c.inject && !P.done[id] && !routines.some(r => r.id === c.inject.id)){
+    P.stash = routines;
+    routines = [JSON.parse(JSON.stringify(c.inject))];
+    save(); renderRoutines();
+    trace("🏠 You're at Maya's place — only her routine is loaded. Yours come back after this challenge.", "dim");
   }
   renderLadder(); renderActive();
 }
@@ -305,6 +313,11 @@ function renderActive(){
     const pass = lastResults.every(r => r.ok);
     P.attempts[c.id] = (P.attempts[c.id] || 0) + 1;
     if (pass) P.done[c.id] = true;
+    if (pass && P.stash){
+      routines = P.stash; P.stash = null;
+      renderRoutines();
+      trace("🏠 Maya's bedtime works again. Back home — your routines are restored.", "dim");
+    }
     save(); renderLadder(); renderActive();
   };
   if ($("#hintBtn")) $("#hintBtn").onclick = () => { hintShown++; P.hints[c.id] = hintShown; save(); renderActive(); };

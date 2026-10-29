@@ -20,7 +20,9 @@ Open `index.html` in any browser (file:// works). Progress saves to localStorage
 - Engine: exact-match triggers (case/whitespace normalized — "goodnight" ≠ "good night"),
   condition gating, trace panel narrating match/skip/fire
 - Challenges 1–4 playable with criterion-rubric checks (C2's rubric = proposal Appendix B);
-  C4 injects the deliberately broken routine (silent failure → diagnose via trace)
+  C4 moves the learner to "Maya's place" (their own routines are stashed so they can't
+  mask the bug) and injects her deliberately broken routine (silent failure → diagnose
+  via trace); routines are restored on pass or on leaving the challenge
 - Hints on demand (C2–C3), none for C4; attempts/hints logged in localStorage
 - Challenges 5–6 locked (build week 2, Nov 9–15: independent build + second editor mode)
 
