@@ -1,4 +1,4 @@
-# Routine Ready (v0 — Milestone 1 build)
+# Routine Ready (v1 — Milestone 2 build)
 
 Browser-based simulator teaching family caregivers to build smart-home voice
 routines. CS6460 final project. Client-side only — no server, no build step.
@@ -8,25 +8,32 @@ Open `index.html` in any browser (file:// works). Progress saves to localStorage
 (`routineReady.v1`); to reset for a fresh demo:
 `localStorage.removeItem('routineReady.v1')` in the console, then reload.
 
-## Deploy to GitHub Pages (needed before the Milestone 1 recording)
+## Deploy to GitHub Pages
 1. Create a public repo (e.g. `routine-ready`), push these four files
    (`index.html`, `style.css`, `app.js`, `challenges.js`).
 2. Repo Settings → Pages → Deploy from branch → `main` / root.
 3. URL will be `https://<user>.github.io/routine-ready/` — verify in incognito.
 
-## What's in v0 (build week 1, per proposal timeline)
+## What's in v1 (build week 2, per proposal timeline)
 - Room: lamp, blinds, front-door lock, thermostat; sun slider (dark = sun < 30)
-- Wizard editor (mode one): trigger phrase → condition → actions
+- Two editor modes over one data model:
+  - mode one, wizard (consumer-app style): trigger phrase → condition → actions
+  - mode two, rules (power-user style): one screen, WHEN / IF / THEN, actions added as
+    rows, plus device-state conditions (door locked, lamp on)
 - Engine: exact-match triggers (case/whitespace normalized — "goodnight" ≠ "good night"),
   condition gating, trace panel narrating match/skip/fire
-- Challenges 1–4 playable with criterion-rubric checks (C2's rubric = proposal Appendix B);
-  C4 moves the learner to "Maya's place" (their own routines are stashed so they can't
-  mask the bug) and injects her deliberately broken routine (silent failure → diagnose
-  via trace); routines are restored on pass or on leaving the challenge
-- Hints on demand (C2–C3), none for C4; attempts/hints logged in localStorage
-- Challenges 5–6 locked (build week 2, Nov 9–15: independent build + second editor mode)
+- All six challenges playable with criterion-rubric checks (C2's rubric = proposal Appendix B):
+  - C1 worked example; C2–C3 guided builds with hints on demand
+  - C4 at "Maya's place": the learner's routines are stashed and her broken routine is
+    loaded (silent failure → diagnose via trace); restored on pass or on leaving
+  - C5 unaided build ("leaving home": three actions, daylight-only), no hints
+  - C6 transfer at "Sam's place": empty routine list, rule editor only, device-state
+    condition, no hints and no per-criterion coaching (summative)
+- After C6 the learner can switch any routine between the two editors
+- Completion panel with a results code (attempts, hints, minutes per challenge; no
+  identifying data; leaves the browser only if the learner pastes it)
 
 ## Tests
-Headless logic tests (engine, rubrics, worked-example lifecycle) run via
-JavaScriptCore; 16/16 passing as of 2026-10-21. Bundle lives in the dev
-scratchpad; re-create by stubbing DOM + concatenating `challenges.js` + `app.js`.
+End-to-end flow test (39 assertions, real click handlers, all six challenges including
+wrong builds, the away-house stash, mode switching and the results code) runs in
+headless Chrome via `--dump-dom`; 39/39 passing as of 2026-11-10.

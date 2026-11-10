@@ -1,8 +1,8 @@
 "use strict";
 /* Challenge ladder — mirrors Appendix A of the proposal.
    Each check() receives a context from app.js:
-     { routines, norm, scenario }   where scenario(sunLevel, phrase) resets the
-   room, sets the sun, says the phrase through the real engine (visible in the
+     { routines, norm, scenario }   where scenario(sunLevel, phrase, pre) resets the
+   room (plus any pre-set device state), sets the sun, says the phrase through the real engine (visible in the
    trace panel), and returns { room, fired } after the run.
    Criteria are criterion-referenced and feedback is formative (Shute):
    it names the failed criterion and points at the mismatched element,
@@ -111,15 +111,69 @@ const CHALLENGES = [
   }
 },
 {
-  id:"c5", n:5, title:"Build it alone", kind:"locked",
-  support:"No support — independent build.",
-  goal:"A “leaving home” routine: three actions, one condition, no hints.",
-  lockNote:"Coming in build week 2 (Nov 9–15)"
+  id:"c5", n:5, title:"Build it alone", kind:"solo",
+  support:"None — no hints, no worked steps. The check still tells you which criteria are met.",
+  goal:"Maya leaves for work each morning. Build a routine so that saying “leaving home” turns the lamp off, closes the blinds AND locks the front door. Her husband sometimes says the phrase by accident in the evening — after dark it must do nothing at all.",
+  testNote:"The check runs twice: once in daylight (all three things must happen) and once at night (nothing may change).",
+  check(ctx){
+    const r = ctx.routines.find(x => ctx.norm(x.phrase) === "leaving home");
+    const want = { light:"off", blinds:"closed", lock:"lock" };
+    const d = r ? actDiff(r, want) : null;
+    const res = [];
+    res.push({ ok: !!r,
+      label:"Trigger phrase stored exactly as “leaving home”",
+      fb:"No routine stores that exact phrase." });
+    res.push({ ok: !!r && r.cond === "beforeDark",
+      label:"Routine carries a condition that allows it only in daylight",
+      fb: r && r.cond ? "The routine has a condition, but it allows the wrong time of day. Re-read when Maya actually leaves."
+                      : "Something has to express “not after dark.” Which of the three parts decides WHEN a routine may run?" });
+    res.push({ ok: !!d && !d.missing.length && !d.extra.length,
+      label:"Exactly the three required actions (lamp off, blinds closed, door locked)",
+      fb: !d ? "There is no routine to inspect yet." :
+          d.missing.length ? `The routine is missing or mis-setting ${d.missing.length} of the three actions. Compare the goal sentence with the routine's summary line.` :
+          "The routine also does something Maya didn't ask for." });
+    const day = ctx.scenario(80, "leaving home");
+    res.push({ ok: day.fired.length >= 1 && !day.room.light && !day.room.blinds && day.room.locked,
+      label:"Daylight test: lamp off, blinds closed, door locked",
+      fb:"In daylight the room did not reach the goal state. The trace above shows what matched and what ran." });
+    const night = ctx.scenario(10, "leaving home");
+    res.push({ ok: night.fired.length === 0 && night.room.light && night.room.blinds && !night.room.locked,
+      label:"Night test: nothing changes",
+      fb:"After dark the phrase still changed the room. The trace shows which routine let it through." });
+    return res;
+  }
 },
 {
-  id:"c6", n:6, title:"Transfer: new editor mode", kind:"locked",
-  support:"Summative — unfamiliar trigger–condition–action editor, no hints.",
-  goal:"A novel goal (“movie time”) in the second editor mode.",
-  lockNote:"Coming in build week 2 (Nov 9–15)"
+  id:"c6", n:6, title:"Transfer: a different app", kind:"transfer",
+  support:"Summative — unfamiliar editor, no hints, no wizard.",
+  goal:"You're visiting Maya's brother Sam. His house runs a different app: there is no wizard, just one screen of rules written as WHEN / IF / THEN. Sam wants “movie time” to close the blinds, turn the lamp off and set the thermostat to 68°F — but only if the front door is already locked. If the door is unlocked, the phrase should do nothing, so he notices and locks up first.",
+  testNote:"The check runs twice: once with the door unlocked (nothing may change) and once with the door locked (the room must reach Sam's goal). You can lock the door by hand in the room to try it yourself.",
+  away:{ enter:"🏠 You're at Sam's place — a different app, and no routines yet. Yours come back after this challenge.",
+         pass:"🏠 Movie time works at Sam's. Back home — your routines are restored." },
+  check(ctx){
+    const r = ctx.routines.find(x => ctx.norm(x.phrase) === "movie time");
+    const want = { blinds:"closed", light:"off", temp:"68" };
+    const d = r ? actDiff(r, want) : null;
+    const quiet = "";   // summative: the check reports which criteria are met, without coaching
+    const res = [];
+    res.push({ ok: !!r, label:"A rule's WHEN stores exactly “movie time”", fb: quiet });
+    res.push({ ok: !!r && r.cond === "doorLocked", label:"The rule's IF allows it only when the front door is locked", fb: quiet });
+    res.push({ ok: !!d && !d.missing.length && !d.extra.length, label:"Exactly the three required THEN steps (blinds closed, lamp off, thermostat 68°F)", fb: quiet });
+    const open = ctx.scenario(75, "movie time", { locked:false });
+    res.push({ ok: open.fired.length === 0 && open.room.light && open.room.blinds && open.room.temp === 72,
+      label:"Door-unlocked test: nothing changes", fb: quiet });
+    const shut = ctx.scenario(75, "movie time", { locked:true });
+    res.push({ ok: shut.fired.length >= 1 && !shut.room.light && !shut.room.blinds && shut.room.temp === 68,
+      label:"Door-locked test: blinds closed, lamp off, thermostat at 68°F", fb: quiet });
+    return res;
+  }
 }
 ];
+
+/* Compare a routine's actions with a required {device: value} map.
+   Later duplicates win, matching how the engine runs them in order. */
+function actDiff(r, want){
+  const got = {}; r.actions.forEach(a => got[a.device] = String(a.to));
+  return { missing: Object.keys(want).filter(k => got[k] !== String(want[k])),
+           extra:   Object.keys(got).filter(k => !(k in want)) };
+}
