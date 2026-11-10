@@ -33,6 +33,11 @@ Open `index.html` in any browser (file:// works). Progress saves to localStorage
 - Completion panel with a results code (attempts, hints, minutes per challenge; no
   identifying data; leaves the browser only if the learner pastes it)
 
+- From Milestone 1 peer review: plain-language sentence preview in the wizard ("When I
+  say … but only … the house will …"), a clock label on the time-of-day slider (noon →
+  late evening), and optional speech input via the Web Speech API where the browser has
+  it (typing stays the default; the trace shows what the microphone heard)
+
 ## Tests
 End-to-end flow test (39 assertions, real click handlers, all six challenges including
 wrong builds, the away-house stash, mode switching and the results code) runs in

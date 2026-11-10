@@ -21,7 +21,8 @@
   <section class="sim">
     <div class="card sunCard">
       <label for="sun">☀️ Time of day <span class="mut" id="sunLabel"></span></label>
-      <input type="range" id="sun" min="0" max="100" value="75">
+      <input type="range" id="sun" min="0" max="100" value="75" aria-describedby="sunEnds">
+      <div class="sunEnds mut" id="sunEnds"><span>noon</span><span>sunset is about 6 PM</span><span>late evening</span></div>
     </div>
 
     <div class="room card" id="roomBox">
@@ -52,8 +53,9 @@
       <div class="sayRow">
         <input id="sayBox" type="text" placeholder='try: good night' autocomplete="off">
         <button class="btn" id="sayBtn">Say it</button>
+        <button class="btn sec hidden" id="micBtn" title="Speak the phrase (uses your microphone)">🎙 Speak</button>
       </div>
-      <small class="mut">Typed for now — speech input is a planned upgrade. The matching rules are identical.</small>
+      <small class="mut" id="sayNote">Type the phrase. The house matches the exact words it receives.</small>
     </div>
 
     <div class="card trace">

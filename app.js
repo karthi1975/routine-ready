@@ -24,10 +24,17 @@ const START = { light:true, blinds:true, locked:false, temp:72 };
 let room = {...START};
 let sun = 75;                       // 0–100; below 30 counts as dark
 const isDark = () => sun < 30;
+/* The slider is the sun's height; show it as a clock so routines attach to a
+   time of day: 100 = noon, 30 = 6 PM (sunset), 0 = about 8:30 PM. */
+function clockText(){
+  const q = Math.round((100 - sun) * 6 / 70 * 4);          // quarter-hours after noon
+  const h = Math.floor(q / 4), m = (q % 4) * 15;
+  return `${h === 0 ? 12 : h}:${String(m).padStart(2, "0")} PM`;
+}
 
 function renderRoom(){
   $("#roomBox").classList.toggle("night", isDark());
-  $("#sunLabel").textContent = isDark() ? "night 🌙" : "daytime";
+  $("#sunLabel").textContent = `about ${clockText()} · ${isDark() ? "night 🌙" : "daytime"}`;
   const L = $("#d-light");
   L.classList.toggle("on", room.light);
   $("#lightIcon").textContent = "💡";
@@ -133,6 +140,35 @@ function sayPhrase(raw){
 }
 $("#sayBtn").onclick = () => { sayPhrase($("#sayBox").value); $("#sayBox").select(); };
 $("#sayBox").addEventListener("keydown", e => { if (e.key === "Enter") $("#sayBtn").click(); });
+
+/* Optional speech input (Web Speech API, where the browser has it). Typing stays
+   the default. The house acts on whatever the recognizer heard, so real
+   mis-hearings ("goodnight" for "good night") show up in the trace. */
+(function(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const btn = $("#micBtn"); btn.classList.remove("hidden");
+  $("#sayNote").textContent = "Type the phrase, or press Speak and say it. Either way the house matches the exact words it receives.";
+  let rec = null;
+  const idle = () => { rec = null; btn.classList.remove("rec"); btn.textContent = "🎙 Speak"; };
+  btn.onclick = () => {
+    if (rec){ rec.stop(); return; }
+    try {
+      rec = new SR(); rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
+      rec.onresult = e => {
+        const heard = String(e.results[0][0].transcript).trim().replace(/[.!?,]+$/, "");
+        $("#sayBox").value = heard;
+        trace(`🎙 The microphone heard: “${heard}”`, "dim");
+        sayPhrase(heard);
+      };
+      rec.onerror = e => trace(e.error === "no-speech"
+        ? "🎙 I didn't hear anything. Press Speak and try again, or type the phrase."
+        : `🎙 The microphone isn't available (${e.error}). Type the phrase instead — the matching rules are the same.`, "warn");
+      rec.onend = idle;
+      rec.start(); btn.classList.add("rec"); btn.textContent = "● Listening…";
+    } catch(err){ idle(); trace("🎙 Speech input couldn't start. Type the phrase instead.", "warn"); }
+  };
+})();
 
 function renderRoutines(){
   const el = $("#routineList");
@@ -240,6 +276,7 @@ function renderEditor(){
   el.innerHTML = `<div class="traceHead"><b>${d.idx == null ? "New routine" : "Edit routine"} <span class="mut">· wizard mode</span></b>
       ${modeSwitchBtn()}<button class="mini" id="e-close">Cancel</button></div>
     ${stepTabs}${body}
+    <p class="sentence" id="e-sentence"></p>
     <div class="panelRow">
       ${d.step > 1 ? '<button class="btn sec" id="e-back">← Back</button>' : ""}
       ${d.step < 3 ? '<button class="btn" id="e-next">Next →</button>' : '<button class="btn" id="e-save">Save routine</button>'}
@@ -248,6 +285,16 @@ function renderEditor(){
     if (d.step === 1){ d.name = $("#e-name").value; d.phrase = $("#e-phrase").value; }
   };
   const alertStep = editorAlert;
+  /* the routine so far, in plain language next to the three part names */
+  const sentence = () => {
+    const acts = DEV_KEYS.filter(k => d.acts[k] != null).map(k => ACT_LABEL({device:k, to:d.acts[k]}));
+    const phrase = d.step === 1 && $("#e-phrase") ? $("#e-phrase").value : d.phrase;
+    $("#e-sentence").innerHTML = `<b>When I say</b> “${esc(phrase.trim() || "…")}”`
+      + (d.cond ? `, <b>but ${esc(CONDS[d.cond].label)}</b>` : "")
+      + `, <b>the house will</b> ${acts.length ? esc(acts.join(" and ")) : "…"}.`;
+  };
+  sentence();
+  if ($("#e-phrase")) $("#e-phrase").oninput = sentence;
   $("#e-close").onclick = closeEditor;
   wireModeSwitch(grab);
   if ($("#e-back")) $("#e-back").onclick = () => { grab(); d.step--; renderEditor(); };
@@ -262,7 +309,7 @@ function renderEditor(){
     d.acts[dev] = i.checked ? (dev === "temp" ? 68 : {light:"off", blinds:"closed", lock:"lock"}[dev]) : null;
     renderEditor();
   });
-  $$("#editorCard [data-val]").forEach(i => i.onchange = () => { d.acts[i.dataset.val] = i.dataset.val === "temp" ? +i.value : i.value; });
+  $$("#editorCard [data-val]").forEach(i => i.onchange = () => { d.acts[i.dataset.val] = i.dataset.val === "temp" ? +i.value : i.value; sentence(); });
   if ($("#e-save")) $("#e-save").onclick = () => {
     const actions = ["light","blinds","lock","temp"].filter(dev => d.acts[dev] != null)
                     .map(dev => ({device:dev, to:d.acts[dev]}));
@@ -485,9 +532,10 @@ function renderOnboarding(el){
   el.innerHTML = `<h2>Meet Maya</h2>
     <div class="goal">Maya's husband uses a wheelchair and controls his room by voice. At home, Maya wants one phrase — <b>“good night”</b> — to turn off the lamp and lock the door. She tried the real app once; the routine never fired, nothing said why, and she gave up.</div>
     <p style="font-size:14px">Routine Ready is a safe copy of her living room. Here, routines are built from three parts:</p>
-    <div class="crit"><span class="mark">1</span><span><b>Trigger</b> — the phrase you say.</span></div>
-    <div class="crit"><span class="mark">2</span><span><b>Condition</b> — when the routine is allowed to run (optional).</span></div>
-    <div class="crit"><span class="mark">3</span><span><b>Action</b> — what the house does.</span></div>
+    <div class="crit"><span class="mark">1</span><span><b>Trigger</b> — “<i>When I say…</i>” The phrase you say.</span></div>
+    <div class="crit"><span class="mark">2</span><span><b>Condition</b> — “<i>…but only if…</i>” When the routine is allowed to run (optional).</span></div>
+    <div class="crit"><span class="mark">3</span><span><b>Action</b> — “<i>…the house will…</i>” What the house does.</span></div>
+    <p class="sentence">Put together: <b>When I say</b> “good night”, <b>the house will</b> turn the lamp off and lock the front door.</p>
     <p class="explain">You'll build routines, say phrases to the room on the left, and read the trace panel when something doesn't fire. Breaking things here is free — that's the point.</p>
     <div class="panelRow">
       <button class="btn" id="ob-new">I've never built a routine — show me (Challenge 1)</button>

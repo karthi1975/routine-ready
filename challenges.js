@@ -65,7 +65,7 @@ const CHALLENGES = [
   hints:[
     "New routine, trigger phrase lights out, action Lamp → turn off.",
     "Step 2 is the new part: pick the condition “only after dark.” A condition doesn't change what the routine does — it changes when it's allowed to run.",
-    "Test both ways yourself: slider high (day) then say it, slider low (night) then say it. Watch the trace explain the skip."
+    "Test both ways yourself: slider toward noon then say it, slider toward late evening then say it. Watch the trace explain the skip."
   ],
   check(ctx){
     const r = ctx.routines.find(x => ctx.norm(x.phrase) === "lights out");
