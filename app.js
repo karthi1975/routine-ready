@@ -151,21 +151,42 @@ $("#sayBox").addEventListener("keydown", e => { if (e.key === "Enter") $("#sayBt
   $("#sayNote").textContent = "Type the phrase, or press Speak and say it. Either way the house matches the exact words it receives.";
   let rec = null;
   const idle = () => { rec = null; btn.classList.remove("rec"); btn.textContent = "🎙 Speak"; };
+  const clean = t => String(t).trim().replace(/[.!?,]+$/, "");
   btn.onclick = () => {
     if (rec){ rec.stop(); return; }
     try {
-      rec = new SR(); rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
-      rec.onresult = e => {
-        const heard = String(e.results[0][0].transcript).trim().replace(/[.!?,]+$/, "");
+      /* Interim results are on so a short phrase is kept even if the recognizer
+         never marks it final, and so the button can show that sound is arriving. */
+      let interim = "", done = false, sawSound = false, failed = false;
+      const finish = heard => {
+        if (done || !heard) return;
+        done = true;
         $("#sayBox").value = heard;
         trace(`🎙 The microphone heard: “${heard}”`, "dim");
         sayPhrase(heard);
       };
-      rec.onerror = e => trace(e.error === "no-speech"
-        ? "🎙 I didn't hear anything. Press Speak and try again, or type the phrase."
-        : `🎙 The microphone isn't available (${e.error}). Type the phrase instead — the matching rules are the same.`, "warn");
-      rec.onend = idle;
-      rec.start(); btn.classList.add("rec"); btn.textContent = "● Listening…";
+      rec = new SR(); rec.lang = "en-US"; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 1;
+      rec.onaudiostart = () => { btn.textContent = "● Listening… speak now"; };
+      rec.onsoundstart = rec.onspeechstart = () => { sawSound = true; btn.textContent = "● Hearing you…"; };
+      rec.onresult = e => {
+        sawSound = true;
+        const r = e.results[e.results.length - 1];
+        const text = clean(r[0].transcript);
+        if (r.isFinal) finish(text);
+        else { interim = text; $("#sayBox").value = text; }
+      };
+      rec.onerror = e => {
+        if (e.error === "aborted" || (e.error === "no-speech" && interim)) return;
+        failed = true;
+        if (e.error === "no-speech") trace(sawSound
+          ? "🎙 I heard sound but no words. Press Speak, wait for “speak now”, and say the phrase again, or type it."
+          : "🎙 No sound reached the browser. Check that this browser is allowed to use the microphone and that the right microphone is selected, then try again. Typing works the same way.", "warn");
+        else if (e.error === "not-allowed" || e.error === "service-not-allowed")
+          trace("🎙 The microphone is blocked for this page. Allow it from the icon in the address bar, or type the phrase.", "warn");
+        else trace(`🎙 The microphone isn't available (${e.error}). Type the phrase instead — the matching rules are the same.`, "warn");
+      };
+      rec.onend = () => { if (!failed) finish(interim); idle(); };
+      rec.start(); btn.classList.add("rec"); btn.textContent = "● Starting…";
     } catch(err){ idle(); trace("🎙 Speech input couldn't start. Type the phrase instead.", "warn"); }
   };
 })();
