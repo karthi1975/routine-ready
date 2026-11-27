@@ -129,3 +129,41 @@ footer{text-align:center;padding:0 20px 30px;font-size:12.5px}
 .finish{border:1px solid var(--ok);border-radius:10px;padding:11px 13px;margin-top:12px;font-size:13.5px}
 .finish label{display:block;font-weight:600;font-size:13px;margin-top:8px}
 .finish input{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* quick checks + confidence ratings */
+.quick{border:1px solid var(--acc);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px}
+.quick p{margin:6px 0 8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin:6px 0;background:none;color:inherit;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--acc)}
+.opt:disabled{cursor:default;opacity:.75}
+.opt.right{border-color:var(--ok);background:var(--ok-soft);opacity:1}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.quick .fb{border-radius:8px;padding:7px 10px;margin-top:6px;font-size:13px}
+.quick .fb.right{background:var(--ok-soft);color:var(--ok)}
+.quick .fb.wrong{background:var(--bad-soft);color:var(--bad)}
+.confRow{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:8px 0}
+.confBtns{display:flex;gap:4px;flex:none}
+.opt.num{display:inline-block;width:34px;text-align:center;margin:0;padding:6px 0;font-weight:700}
+.opt.sel{border-color:var(--acc);background:var(--acc);color:#fff}
+.chip.probe{border-style:dashed}
+
+/* take-home sheet + before/after table */
+table.sheet{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 4px}
+table.sheet th,table.sheet td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+table.sheet th{background:var(--acc-soft);font-size:12.5px}
+table.ba td:nth-child(n+2),table.ba th:nth-child(n+2){text-align:center;width:24%}
+table.ba .tot td{font-weight:800}
+.yes{color:var(--ok);font-weight:800}.no{color:var(--bad);font-weight:800}
+#sheetCard textarea{font:inherit;width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);resize:vertical}
+@media print{
+  /* print the sheet in light colours whatever theme is on screen (dark text on paper) */
+  :root:root:root{
+    --bg:#fff; --card:#fff; --ink:#111; --mut:#444; --line:#bbb;
+    --acc:#1a3f99; --acc-soft:#eef2fb; --ok:#187f4c; --ok-soft:#fff; --bad:#c23a34; --bad-soft:#fff;
+    color-scheme:light;
+  }
+  header,footer,.sim,.panel > .card:not(#sheetCard),.noPrint{display:none !important}
+  main{display:block;padding:0}
+  body{background:#fff;color:#000}
+  #sheetCard{border:0;margin:0;padding:0}
+}

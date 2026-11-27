@@ -1,4 +1,4 @@
-# Routine Ready (v1 — Milestone 2 build)
+# Routine Ready (v2 — Milestone 3 build)
 
 Browser-based simulator teaching family caregivers to build smart-home voice
 routines. CS6460 final project. Client-side only — no server, no build step.
@@ -9,8 +9,8 @@ Open `index.html` in any browser (file:// works). Progress saves to localStorage
 `localStorage.removeItem('routineReady.v1')` in the console, then reload.
 
 ## Deploy to GitHub Pages
-1. Create a public repo (e.g. `routine-ready`), push these four files
-   (`index.html`, `style.css`, `app.js`, `challenges.js`).
+1. Create a public repo (e.g. `routine-ready`), push these five files
+   (`index.html`, `results.html`, `style.css`, `app.js`, `challenges.js`).
 2. Repo Settings → Pages → Deploy from branch → `main` / root.
 3. URL will be `https://<user>.github.io/routine-ready/` — verify in incognito.
 
@@ -42,3 +42,22 @@ Open `index.html` in any browser (file:// works). Progress saves to localStorage
 End-to-end flow test (39 assertions, real click handlers, all six challenges including
 wrong builds, the away-house stash, mode switching and the results code) runs in
 headless Chrome via `--dump-dom`; 39/39 passing as of 2026-11-10.
+
+## Added in v2 (Milestone 3: assessment and evaluation)
+- Before-and-after builds (the evaluation instrument): one build before any teaching and
+  a different one after Challenge 6. Two parallel forms ("reading time", "good morning":
+  one phrase, one time-of-day condition, two actions), each scored 0-5 on the same five
+  criteria. Which form comes first is random (`?form=A` / `?form=B` pins it on a fresh
+  start). One submission, no feedback until both are in; three confidence ratings (1-5)
+  with each build. Both builds use the wizard and an empty routine list.
+- Two quick-check questions (after Challenges 3 and 5) that test the idea rather than
+  the clicking; every option has its own feedback; Continue stays closed until the
+  right answer. First answer and number of tries are recorded.
+- Before/after view at the end: per-criterion table, time, confidence, and a caution
+  that a second try is always easier.
+- Take-home sheet: the three parts mapped to Alexa, Google Home and Apple Home wording,
+  a three-step check for a routine that does nothing, and a "first routine I will build
+  at home" note (saved locally, printable, not part of the results code).
+- Results code v2 (`RR2-`): adds experience (new / built before), quick-check results
+  and both builds. `results.html` reads pasted codes (v1 or v2) into a table with mean
+  before/after, gain, paired t, a form-order check and CSV download. All in the browser.

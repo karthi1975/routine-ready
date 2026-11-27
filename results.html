@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routine Ready — results reader</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  main{display:block;max-width:1100px}
+  textarea{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;width:100%;min-height:120px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .stat b{display:block;font-size:20px}
+  .scroll{overflow-x:auto}
+  table.sheet td,table.sheet th{white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><h1>Routine Ready — results reader</h1><small>For the evaluator. Paste results codes, one per line.</small></div>
+</header>
+<main>
+  <div class="card">
+    <textarea id="codes" placeholder="RR2-… (one code per line)"></textarea>
+    <div class="panelRow"><button class="btn" id="read">Read the codes</button><button class="btn sec" id="csv">Download CSV</button>
+      <span class="mut">Everything is worked out in this browser. Nothing is uploaded.</span></div>
+  </div>
+  <div class="card" id="out"><span class="mut">No codes read yet.</span></div>
+  <div class="card mut">
+    <b>How to read this.</b> Each learner does one build before the lessons and a different one after. Both are scored 0 to 5 on the same five criteria. The order of the two forms is random, so the “by form order” line shows whether one form is simply harder. There is no control group, so a gain here can't be fully separated from the effect of trying a second time.
+  </div>
+</main>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN;
+const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const f1 = v => Number.isFinite(v) ? v.toFixed(2) : "–";
+const digits = s => String(s).split("").map(Number);
+let rows = [];
+
+/* one results code -> one flat row (null where a part is missing) */
+function decode(code){
+  const m = /^RR([12])-(.+)$/.exec(code.trim());
+  if (!m) return null;
+  let d; try { d = JSON.parse(atob(m[2])); } catch(e){ return null; }
+  const c = m[1] === "1" ? d : d.c;
+  if (!Array.isArray(c)) return null;
+  const build = b => Array.isArray(b) ? { form:b[0], score:digits(b[1]).reduce((s, v) => s + v, 0), crit:b[1], secs:b[2], conf:mean(digits(b[3])) } : null;
+  const a = m[1] === "2" ? build(d.a) : null, b = m[1] === "2" ? build(d.b) : null;
+  const j = m[1] === "2" && Array.isArray(d.j) ? d.j : [];
+  const mins = c.map(r => r[2]).filter(v => v >= 0);
+  return {
+    version: +m[1],
+    experience: m[1] === "2" && d.x != null ? (d.x ? "built before" : "new") : "",
+    order: a && b ? a.form + " then " + b.form : "",
+    pre: a ? a.score : null, post: b ? b.score : null,
+    gain: a && b ? b.score - a.score : null,
+    preCrit: a ? a.crit : "", postCrit: b ? b.crit : "",
+    preSecs: a ? a.secs : null, postSecs: b ? b.secs : null,
+    preConf: a ? a.conf : null, postConf: b ? b.conf : null,
+    attempts: c.reduce((s, r) => s + r[0], 0), hints: c.reduce((s, r) => s + r[1], 0),
+    minutes: mins.length ? Math.max(...mins) : null,
+    c6tries: c[5] ? c[5][0] : null,
+    q1first: j[0] ? j[0][0] : null, q2first: j[1] ? j[1][0] : null
+  };
+}
+const COLS = [["experience","Experience"],["order","Form order"],["pre","Before (0-5)"],["post","After (0-5)"],["gain","Gain"],
+  ["preCrit","Before criteria"],["postCrit","After criteria"],["preSecs","Before secs"],["postSecs","After secs"],
+  ["preConf","Conf. before"],["postConf","Conf. after"],["attempts","Checks run"],["hints","Hints"],["minutes","Minutes to C6"],
+  ["c6tries","C6 tries"],["q1first","Q1 first try"],["q2first","Q2 first try"]];
+const cell = v => v == null || v === "" ? "–" : typeof v === "number" && !Number.isInteger(v) ? v.toFixed(1) : esc(v);
+
+function read(){
+  const lines = $("#codes").value.split(/\s+/).filter(Boolean);
+  rows = []; let bad = 0;
+  for (const l of lines){ const r = decode(l); if (r) rows.push(r); else bad++; }
+  if (!rows.length){ $("#out").innerHTML = `<span class="mut">No valid codes found${bad ? ` (${bad} line${bad > 1 ? "s" : ""} could not be read)` : ""}.</span>`; return; }
+  const pairs = rows.filter(r => r.gain != null), g = pairs.map(r => r.gain);
+  const t = pairs.length > 1 && sd(g) > 0 ? mean(g) / (sd(g) / Math.sqrt(pairs.length)) : NaN;
+  const byOrder = o => pairs.filter(r => r.order.startsWith(o)).map(r => r.gain);
+  const conf = rows.filter(r => r.preConf != null && r.postConf != null);
+  const stat = (label, v) => `<div class="stat"><span class="mut">${label}</span><b>${v}</b></div>`;
+  $("#out").innerHTML = `
+    <b>${rows.length} learner${rows.length > 1 ? "s" : ""}</b> <span class="mut">${pairs.length} with both builds${bad ? ` · ${bad} line${bad > 1 ? "s" : ""} could not be read` : ""}</span>
+    <div class="stats">
+      ${stat("Mean before", f1(mean(pairs.map(r => r.pre))))}
+      ${stat("Mean after", f1(mean(pairs.map(r => r.post))))}
+      ${stat("Mean gain (SD)", `${f1(mean(g))} (${f1(sd(g))})`)}
+      ${stat("Better / same / worse", `${g.filter(v => v > 0).length} / ${g.filter(v => v === 0).length} / ${g.filter(v => v < 0).length}`)}
+      ${stat("Paired t (df)", Number.isFinite(t) ? `${t.toFixed(2)} (${pairs.length - 1})` : "–")}
+      ${stat("Confidence before → after", `${f1(mean(conf.map(r => r.preConf)))} → ${f1(mean(conf.map(r => r.postConf)))}`)}
+    </div>
+    <p class="explain">By form order — mean gain when form A came first: <b>${f1(mean(byOrder("A")))}</b> (n=${byOrder("A").length}); when form B came first: <b>${f1(mean(byOrder("B")))}</b> (n=${byOrder("B").length}).
+      Criteria are shown as five digits: phrase, condition, actions, runs when it should, stays quiet when it should.</p>
+    <div class="scroll"><table class="sheet"><tr><th>#</th>${COLS.map(c => `<th>${c[1]}</th>`).join("")}</tr>
+      ${rows.map((r, i) => `<tr><td>${i + 1}</td>${COLS.map(c => `<td>${cell(r[c[0]])}</td>`).join("")}</tr>`).join("")}</table></div>`;
+}
+$("#read").onclick = read;
+$("#csv").onclick = () => {
+  if (!rows.length) read();
+  if (!rows.length) return;
+  const q = v => v == null ? "" : `"${String(v).replace(/"/g, '""')}"`;
+  const text = [COLS.map(c => q(c[1])).join(",")].concat(rows.map(r => COLS.map(c => q(r[c[0]])).join(","))).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"text/csv"})); a.download = "routine_ready_results.csv"; a.click();
+};
+</script>
+</body>
+</html>

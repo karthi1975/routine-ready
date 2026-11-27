@@ -85,6 +85,15 @@ const CHALLENGES = [
       label:"Night test: the routine fires and the lamp turns off",
       fb:"At night the routine should fire. If the trace shows no match, re-check the phrase; if it shows a condition skip, re-check which condition you picked." });
     return res;
+  },
+  /* scenario-judgment item: checks the idea, not the clicking */
+  after:{
+    q:"Sam wants “I'm cold” to set the thermostat to 74°F, but never while the front door is unlocked. Which part of the routine holds “never while the front door is unlocked”?",
+    opts:[
+      { t:"The trigger", fb:"The trigger is only the phrase that starts the routine: “I'm cold”. It can't look at the door." },
+      { t:"The condition", ok:true, fb:"Yes. A condition decides when the routine is allowed to run. The trigger and the action stay the same." },
+      { t:"The action", fb:"The action is what the house does: set the thermostat to 74°F. It doesn't decide whether the routine may run." }
+    ]
   }
 },
 {
@@ -141,6 +150,14 @@ const CHALLENGES = [
       label:"Night test: nothing changes",
       fb:"After dark the phrase still changed the room. The trace shows which routine let it through." });
     return res;
+  },
+  after:{
+    q:"A neighbour says “porch on” at 3 PM and nothing happens. Her trace reads: trigger matched · condition “only after dark” not met (it is still daytime) · routine skipped. What is going on?",
+    opts:[
+      { t:"The house misheard the phrase, so she should fix the trigger.", fb:"Look at the first trace line: the trigger matched. The words were heard correctly." },
+      { t:"The routine works as built. The condition stopped it, because it is daytime.", ok:true, fb:"Yes. A skip by a condition is not a broken routine. It looks the same in the room as a silent failure, and the trace is how you tell them apart." },
+      { t:"The action is missing, so she should add “turn the porch light on” again.", fb:"The routine never got as far as its actions. The trace stops at the condition line." }
+    ]
   }
 },
 {
@@ -177,3 +194,44 @@ function actDiff(r, want){
   return { missing: Object.keys(want).filter(k => got[k] !== String(want[k])),
            extra:   Object.keys(got).filter(k => !(k in want)) };
 }
+
+/* Before-and-after builds (the evaluation instrument).
+   Two parallel forms: one phrase, one time-of-day condition, two actions (one is
+   the editor's default setting, one has to be changed). Each learner gets one
+   form before the lessons and the other after; which comes first is random, so
+   a harder form is not mistaken for learning. Scored 0-5 on the same five
+   criteria. No feedback is shown until both builds are in. */
+const PROBE_CRITERIA = ["Phrase stored exactly", "Right condition", "Exactly the two actions", "Runs when it should", "Stays quiet when it should not run"];
+const FORMS = [
+{
+  id:"A", phrase:"reading time",
+  goal:"Maya's husband reads in the evening. Build a routine so that saying “reading time” turns the lamp ON and closes the blinds, but only after dark. If someone says it in the daytime, nothing may change.",
+  check(ctx){
+    const r = ctx.routines.find(x => ctx.norm(x.phrase) === "reading time");
+    const d = r ? actDiff(r, { light:"on", blinds:"closed" }) : null;
+    const night = ctx.scenario(10, "reading time", { light:false, blinds:true });
+    const day   = ctx.scenario(80, "reading time", { light:false, blinds:true });
+    return [ !!r, !!r && r.cond === "afterDark", !!d && !d.missing.length && !d.extra.length,
+             night.fired.length >= 1 && night.room.light && !night.room.blinds,
+             !!r && day.fired.length === 0 && !day.room.light && day.room.blinds ];
+  }
+},
+{
+  id:"B", phrase:"good morning",
+  goal:"Maya's husband wakes up. Build a routine so that saying “good morning” OPENS the blinds and turns the lamp off, but only in daylight. If someone says it after dark, nothing may change.",
+  check(ctx){
+    const r = ctx.routines.find(x => ctx.norm(x.phrase) === "good morning");
+    const d = r ? actDiff(r, { blinds:"open", light:"off" }) : null;
+    const day   = ctx.scenario(80, "good morning", { blinds:false, light:true });
+    const night = ctx.scenario(10, "good morning", { blinds:false, light:true });
+    return [ !!r, !!r && r.cond === "beforeDark", !!d && !d.missing.length && !d.extra.length,
+             day.fired.length >= 1 && day.room.blinds && !day.room.light,
+             !!r && night.fired.length === 0 && !night.room.blinds && night.room.light ];
+  }
+}
+];
+const CONFIDENCE = [
+  "I could build a voice routine for a new goal without help.",
+  "If a routine did nothing when I said its phrase, I could find out why.",
+  "I could do this in a different smart-home app than this one."
+];
