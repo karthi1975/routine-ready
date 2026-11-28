@@ -681,6 +681,7 @@ function renderProbe(el, c){
     if (P.stash){ routines = P.stash; P.stash = null; P.awayAt = null; }
     sun = 75; $("#sun").value = sun; resetRoom();
     save(); renderRoutines(); renderLadder(); renderActive();
+    el.scrollIntoView({ block:"start" });    // the result replaces the form, so show it from its top
   };
   if ($("#probeSubmit")) $("#probeSubmit").onclick = () => {
     if (probeConf.some(v => v == null)){ $("#probeMsg").classList.remove("hidden"); return; }
